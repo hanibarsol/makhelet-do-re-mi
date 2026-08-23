@@ -1003,6 +1003,42 @@
     .sol-nav-btn { transition: none; }
     .sol-nav-btn:hover { transform: none; }
 }
+
+  /* ---------- Stage-one demonstration ---------- */
+  /* A child who cannot read has no way of knowing that these cards are meant to be dragged, so
+     do walks itself into place, over and over, until the child touches the screen.
+
+     This is a layer laid OVER the game and nothing else. It reads two positions from the page,
+     draws a copy of a card travelling between them, and removes itself. It never touches the
+     drag code, the game state, or anything in the later stages, and pointer-events: none means
+     it cannot swallow the first real touch either. */
+  .demo-ghost {
+    position: fixed;
+    z-index: 45;
+    pointer-events: none;
+    opacity: 0;
+    margin: 0;
+    transform-origin: center;
+    filter: drop-shadow(0 10px 18px rgba(20, 30, 60, 0.32));
+    will-change: transform, opacity;
+  }
+  .demo-halo {
+    position: fixed;
+    z-index: 46;
+    pointer-events: none;
+    width: 54px;
+    height: 54px;
+    margin: -27px 0 0 -27px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(60, 80, 160, 0.25), 0 6px 16px rgba(20, 30, 60, 0.3);
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .demo-ghost, .demo-halo { display: none; }
+  }
 </style>
 
 <main dir="rtl" lang="he">
@@ -1697,17 +1733,29 @@
 
   /* ---------- Stage 2: swap-to-sort ---------- */
 
+  /* Stage two opens with דו already standing in first place, and only the other six shuffled.
+
+     Hani asked for this because stage two looked almost identical to stage one — the same
+     arches, the same faces — and a child could not see what the new task was. One character
+     already home turns the row into a sentence that has started: this is the order, carry it
+     on. It is also what the demonstration needs in order to make sense, since it can then show
+     רה taking the place right after דו rather than an arbitrary swap.
+
+     דו stays draggable. Locking it would leave a child pressing something that does not answer,
+     which reads as broken; being already correct is enough. */
   function derangedCharacters() {
-    var arr = CHARACTERS.slice();
+    var first = CHARACTERS[0];
+    var rest = CHARACTERS.slice(1);
     var valid = false;
     while (!valid) {
-      for (var i = arr.length - 1; i > 0; i--) {
+      for (var i = rest.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
-        var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        var tmp = rest[i]; rest[i] = rest[j]; rest[j] = tmp;
       }
-      valid = arr.every(function (c, i) { return c.key !== CHARACTERS[i].key; });
+      // nobody but דו may start in their own place, or there is nothing to work out
+      valid = rest.every(function (c, i) { return c.key !== CHARACTERS[i + 1].key; });
     }
-    return arr;
+    return [first].concat(rest);
   }
 
   function computeMinSwaps(order) {
@@ -2257,6 +2305,179 @@
 })();
 </script>
 
+
+
+<script>
+/* Stage-one demonstration - a separate, self-contained layer.
+
+   Written as its own closure with no reference to anything inside the game: it only reads
+   positions from the DOM and draws on top. Delete this block and the game behaves exactly as
+   it did before. That isolation is the point - Hani asked for a demonstration that could not
+   disturb the matching stage or anything else already working. */
+(function () {
+  var TRAVEL_MS = 1500;   // long enough to read as a deliberate movement, not a flick
+  var HOLD_MS = 500;      // a beat at the destination so the landing registers
+  var PAUSE_MS = 900;     // and a breath before it starts over
+
+  var ghost = null, halo = null, timers = [], stopped = false;
+
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+  function remove() {
+    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    if (halo && halo.parentNode) halo.parentNode.removeChild(halo);
+    ghost = null;
+    halo = null;
+  }
+
+  /* The first touch anywhere means the child has understood, or at least started. Listened for
+     on the way down so it lands before anything else, and it never blocks the touch itself. */
+  /* A touch ends the demonstration for the stage it is showing, not for the whole lesson.
+
+     Stage two needs its own demonstration, and by the time it begins the child has touched the
+     screen many times already — a single permanent stop would mean stage two never explains
+     itself. So a touch pauses, and a change of stage starts the next demonstration. */
+  var hushedFor = null;
+
+  function stageFingerprint() {
+    var tray = document.getElementById("traySection");
+    var stageOn = document.getElementById("stageSection");
+    if (!stageOn || stageOn.hidden) return "away";
+    return (tray && !tray.hidden) ? "one" : "two";
+  }
+
+  function stop() {
+    hushedFor = stageFingerprint();
+    timers.forEach(clearTimeout);
+    timers = [];
+    remove();
+    later(cycle, 700);
+  }
+  document.addEventListener("pointerdown", stop, true);
+  document.addEventListener("keydown", stop, true);
+
+  function stageOneVisible() {
+    var section = document.getElementById("stageSection");
+    var tray = document.getElementById("traySection");
+    return !!section && !section.hidden && !!tray && !tray.hidden;
+  }
+
+  function slotNamed(text) {
+    var slots = document.querySelectorAll(".slot");
+    for (var i = 0; i < slots.length; i++) {
+      var label = slots[i].querySelector(".slot-name");
+      if (label && label.textContent.trim() === text) return slots[i];
+    }
+    return null;
+  }
+
+  function box(el) {
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, rect: r };
+  }
+
+  /* What to demonstrate depends on the stage.
+
+     Stage one: דו is still in the tray, so show it being carried up into its arch — the whole
+     idea being that these cards move at all.
+
+     Stage two: everyone is already standing in the row and only the ORDER is wrong, which is a
+     different task and looked like the same one. דו starts in place, so showing רה move into
+     the arch right after it says what the new task is without a word of text.
+
+     Either way it is a copy travelling above the page. Nothing is really moved. */
+  function whatToDemonstrate() {
+    var stageOn = document.getElementById("stageSection");
+    if (!stageOn || stageOn.hidden) return null;
+
+    var tray = document.getElementById("traySection");
+    var trayOpen = !!tray && !tray.hidden;
+
+    if (trayOpen) {
+      var fromCard = document.querySelector("#trayShelf .card[data-key='do']");
+      var toSlot = slotNamed("דו");
+      if (!fromCard || !toSlot) return null;
+      return { card: fromCard, slot: toSlot };
+    }
+
+    // stage two: רה is standing in somebody else's arch, and belongs in the second one
+    var reCard = document.querySelector(".slot .card[data-key='re']");
+    var reSlot = slotNamed("רה");
+    if (!reCard || !reSlot) return null;
+    // already in place — there is nothing left to show
+    if (reSlot.contains(reCard)) return null;
+    return { card: reCard, slot: reSlot };
+  }
+
+  function cycle() {
+    if (stopped) return;
+    if (hushedFor && hushedFor === stageFingerprint()) { later(cycle, 700); return; }
+
+    var plan = whatToDemonstrate();
+    if (!plan) { later(cycle, 700); return; }
+    var card = plan.card;
+    var slot = plan.slot;
+
+    var from = box(card);
+    var arch = slot.querySelector(".slot-arch") || slot;
+    var to = box(arch);
+
+    remove();
+    ghost = card.cloneNode(true);
+    ghost.className = "card demo-ghost";
+    ghost.style.width = from.w + "px";
+    ghost.style.height = from.h + "px";
+    ghost.style.left = from.rect.left + "px";
+    ghost.style.top = from.rect.top + "px";
+    document.body.appendChild(ghost);
+
+    halo = document.createElement("div");
+    halo.className = "demo-halo";
+    halo.style.left = from.x + "px";
+    halo.style.top = from.y + "px";
+    document.body.appendChild(halo);
+
+    var dx = to.x - from.x;
+    var dy = to.y - from.y;
+
+    requestAnimationFrame(function () {
+      if (stopped || !ghost) return;
+      ghost.style.transition = "opacity 260ms ease";
+      halo.style.transition = "opacity 260ms ease, transform 260ms ease";
+      ghost.style.opacity = "0.92";
+      halo.style.opacity = "1";
+      halo.style.transform = "scale(0.86)";
+
+      later(function () {
+        if (stopped || !ghost) return;
+        var ease = "cubic-bezier(.45,.05,.3,1)";
+        ghost.style.transition = "transform " + TRAVEL_MS + "ms " + ease;
+        halo.style.transition = "transform " + TRAVEL_MS + "ms " + ease;
+        ghost.style.transform = "translate(" + dx + "px, " + dy + "px) scale(0.94)";
+        halo.style.transform = "translate(" + dx + "px, " + dy + "px) scale(0.86)";
+      }, 300);
+
+      later(function () {
+        if (stopped || !ghost) return;
+        ghost.style.transition = "opacity 320ms ease";
+        halo.style.transition = "opacity 320ms ease";
+        ghost.style.opacity = "0";
+        halo.style.opacity = "0";
+      }, 300 + TRAVEL_MS + HOLD_MS);
+
+      later(function () {
+        if (stopped) return;
+        remove();
+        cycle();
+      }, 300 + TRAVEL_MS + HOLD_MS + PAUSE_MS);
+    });
+  }
+
+  /* Let the cards finish their own entrance before demonstrating anything. */
+  if (document.readyState === "complete") later(cycle, 1400);
+  else window.addEventListener("load", function () { later(cycle, 1400); });
+})();
+</script>
 
 </body>
 </html>

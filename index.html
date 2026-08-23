@@ -2094,6 +2094,16 @@
 
     matchDragKey = owner.dataset.key;
     matchDragSide = side;
+
+    /* Say the note out loud as the child takes hold of it.
+
+       Pedagogically this is the moment that teaches: the hand is on רה and the ear hears "רה".
+
+       It also does something the praise cannot do for itself. A browser only unlocks the player
+       on a play request made during a touch, and the praise clips are only ever asked for on a
+       correct match — a moment that did not count, so Hani heard nothing at all. Taking hold of
+       a card is unmistakably a touch, so from the first drag onwards the voice is free. */
+    playAudio(matchDragKey);
     matchDragOrigin = getAnchorPoint(anchor);
     dragLinePath.setAttribute("d", curvePath(matchDragOrigin, matchDragOrigin));
     dragLinePath.classList.add("visible");
@@ -2122,54 +2132,26 @@
   var matchLastX = 0, matchLastY = 0;
   var matchAutoScrollSpeed = 0;
   var matchAutoScrollRAF = null;
-  var AUTO_SCROLL_EDGE = 90;
-  var AUTO_SCROLL_MAX_SPEED = 8;
+  /* The page does not move at all while a line is being drawn.
 
-  /* The page only moves when the answer this child is reaching for is actually off-screen.
+     It used to follow the finger toward the screen edge; that was narrowed to only when the
+     answer was off-screen, and Hani still found it in the way — reaching for anything far from
+     the anchor slid the page and the connection point ran away from her finger. She asked for it
+     to hold still, so it holds still. A child who cannot reach an answer lets go, scrolls, and
+     takes hold again — which costs nothing, while a target moving under the finger costs the
+     attempt.
 
-     It used to move whenever the finger came near the top or bottom edge, whatever was on
-     screen — so a child dragging toward an answer in plain sight had the page slide out from
-     under them and the target ran away from their finger. Hani asked for the opposite: hold
-     still, and travel only when the answer really is above or below.
-
-     The speed is also halved. Sixteen pixels a frame is nearly a thousand a second, which is far
-     more than a five-year-old can track. */
-  function matchTargetRect() {
-    if (!matchDragKey) return null;
-    var sel = targetSelectorFor(matchDragSide);
-    var target = document.querySelector(sel + '[data-key="' + matchDragKey + '"]');
-    return target ? target.getBoundingClientRect() : null;
-  }
-
-  function updateAutoScroll(clientY) {
-    var target = matchTargetRect();
-    var margin = 12; // count an answer as off-screen a little before it truly is
-    var targetAbove = !!target && target.top < margin;
-    var targetBelow = !!target && target.bottom > window.innerHeight - margin;
-
-    if (targetAbove && clientY < AUTO_SCROLL_EDGE) {
-      matchAutoScrollSpeed = -AUTO_SCROLL_MAX_SPEED * (1 - clientY / AUTO_SCROLL_EDGE);
-    } else if (targetBelow && clientY > window.innerHeight - AUTO_SCROLL_EDGE) {
-      matchAutoScrollSpeed = AUTO_SCROLL_MAX_SPEED * (1 - (window.innerHeight - clientY) / AUTO_SCROLL_EDGE);
-    } else {
-      matchAutoScrollSpeed = 0;
-    }
-    if (matchAutoScrollSpeed !== 0 && !matchAutoScrollRAF) {
-      matchAutoScrollRAF = requestAnimationFrame(autoScrollStep);
+     Do not reintroduce scrolling during the drag. */
+  function updateAutoScroll() {
+    matchAutoScrollSpeed = 0;
+    if (matchAutoScrollRAF) {
+      cancelAnimationFrame(matchAutoScrollRAF);
+      matchAutoScrollRAF = null;
     }
   }
 
   function autoScrollStep() {
-    if (!matchDragKey || matchAutoScrollSpeed === 0) {
-      matchAutoScrollRAF = null;
-      return;
-    }
-    window.scrollBy(0, matchAutoScrollSpeed);
-    // re-decide every frame, so the page stops the instant the answer is on screen rather than
-    // carrying on until the finger moves away from the edge
-    updateAutoScroll(matchLastY);
-    updateDragVisual(matchLastX, matchLastY);
-    matchAutoScrollRAF = requestAnimationFrame(autoScrollStep);
+    matchAutoScrollRAF = null;
   }
 
   function onMatchPointerMove(e) {

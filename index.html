@@ -1890,6 +1890,19 @@
       slotInfo.root.classList.add("occupied");
       slotInfo.media.appendChild(buildInlineCard(ch));
     });
+
+    /* Mark every arch now, not only the two touched by a swap.
+
+       The stage ends when all seven are marked correct, and the marking used to happen only
+       inside a swap. That was fine while nobody started in the right place — but דו now opens
+       already home and is never swapped, so its arch was never marked and the stage could not
+       be finished at all. Marking at setup also lets דו look settled from the first moment,
+       which is the point of it standing there. */
+    CHARACTERS.forEach(function (ch) {
+      var slot = slotEls[ch.key].root;
+      var occupant = occupantOf(slot);
+      if (occupant && occupant.dataset.key === slot.dataset.key) slot.classList.add("filled");
+    });
   }
 
   function occupantOf(slot) {

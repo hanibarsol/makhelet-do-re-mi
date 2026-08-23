@@ -2332,11 +2332,17 @@
 
   /* The first touch anywhere means the child has understood, or at least started. Listened for
      on the way down so it lands before anything else, and it never blocks the touch itself. */
-  /* A touch ends the demonstration for the stage it is showing, not for the whole lesson.
+  /* It stops when the child reaches for a PIECE — not on any touch at all.
 
-     Stage two needs its own demonstration, and by the time it begins the child has touched the
-     screen many times already — a single permanent stop would mean stage two never explains
-     itself. So a touch pauses, and a change of stage starts the next demonstration. */
+     Stopping on any touch sounded right and was wrong in practice: on a phone the cards sit
+     below the fold, so the first thing anyone does is scroll down to see them, and that scroll
+     killed the demonstration before it had been seen. Hani looked for it and found nothing.
+
+     A hand landing on a card or an arch means the child is trying, and that is the moment to
+     stand back. Scrolling, or a touch on empty page, means they are still looking.
+
+     It also quiets per stage rather than for good, because stage two begins long after the child
+     has started touching and needs its own turn to explain itself. */
   var hushedFor = null;
 
   function stageFingerprint() {
@@ -2353,7 +2359,14 @@
     remove();
     later(cycle, 700);
   }
-  document.addEventListener("pointerdown", stop, true);
+
+  function onTouch(e) {
+    var el = e.target;
+    if (!el || !el.closest) return;
+    // a hand on a piece, not a finger passing by
+    if (el.closest(".card, .slot, .match-anchor, .match-name-row, .match-char-card")) stop();
+  }
+  document.addEventListener("pointerdown", onTouch, true);
   document.addEventListener("keydown", stop, true);
 
   function stageOneVisible() {

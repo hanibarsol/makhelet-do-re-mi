@@ -42,6 +42,20 @@
         <path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10" />
     </svg>
 </a>
+<button class="info-btn" id="infoBtn" type="button" aria-label="איך משחקים" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9.2" />
+    <path d="M12 11v5.4" />
+    <path d="M12 7.6v0.1" />
+  </svg>
+</button>
+
+<div class="info-veil" id="infoVeil" hidden>
+  <div class="info-frame">
+    <button class="info-close" id="infoClose" type="button" aria-label="סגירה">✕</button>
+    <video id="infoVideo" playsinline controls preload="none"></video>
+  </div>
+</div>
 <div class="sol-nav">
   <a class="sol-nav-btn sol-nav-next" href="https://portal.smoove.io/og7b11bd8ftf4p3nmbnb/ContentPage?category=qqb&module=bjz3&page=dxcc" target="_top" aria-label="להמשך">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1004,40 +1018,88 @@
     .sol-nav-btn:hover { transform: none; }
 }
 
-  /* ---------- Stage-one demonstration ---------- */
-  /* A child who cannot read has no way of knowing that these cards are meant to be dragged, so
-     do walks itself into place, over and over, until the child touches the screen.
 
-     This is a layer laid OVER the game and nothing else. It reads two positions from the page,
-     draws a copy of a card travelling between them, and removes itself. It never touches the
-     drag code, the game state, or anything in the later stages, and pointer-events: none means
-     it cannot swallow the first real touch either. */
-  .demo-ghost {
+  /* ---------- Info button and its film ---------- */
+  /* Hani showing what to do, in her own recording, for a child who cannot read the
+     instructions. Each stage of this lesson asks for something different, so each has its own
+     film and the button opens whichever one belongs to the stage the child is in.
+
+     Top right, because the top left belongs to the home button everywhere on this platform.
+
+     The button hides itself when the current stage has no film yet, so a child never presses
+     something that answers with nothing. */
+  .info-btn {
     position: fixed;
-    z-index: 45;
-    pointer-events: none;
-    opacity: 0;
-    margin: 0;
-    transform-origin: center;
-    filter: drop-shadow(0 10px 18px rgba(20, 30, 60, 0.32));
-    will-change: transform, opacity;
-  }
-  .demo-halo {
-    position: fixed;
-    z-index: 46;
-    pointer-events: none;
-    width: 54px;
-    height: 54px;
-    margin: -27px 0 0 -27px;
+    top: 12px;
+    right: 12px;
+    z-index: 101;
+    width: 52px;
+    height: 52px;
+    border: none;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.95);
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 0 0 3px rgba(60, 80, 160, 0.25), 0 6px 16px rgba(20, 30, 60, 0.3);
-    opacity: 0;
-    will-change: transform, opacity;
+    background: #17A79B;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(18, 48, 44, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .info-btn[hidden] { display: none; }
+  .info-btn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 18px rgba(18, 48, 44, 0.45); }
+  .info-btn:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+  .info-btn svg { width: 26px; height: 26px; }
+
+  .info-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(16, 24, 40, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .info-veil[hidden] { display: none; }
+  .info-frame {
+    position: relative;
+    width: min(100%, 44rem);
+    border-radius: 20px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  }
+  .info-frame video {
+    display: block;
+    width: 100%;
+    max-height: 78vh;
+    background: #000;
+  }
+  /* Big, round, and its own colour — a four-year-old has to be able to get out without help. */
+  .info-close {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 46px;
+    height: 46px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.94);
+    color: #12201D;
+    font: 700 22px/1 Arial, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+  .info-close:focus-visible { outline: 3px solid #17A79B; outline-offset: 3px; }
+  @media (max-width: 640px) {
+    .info-btn { width: 44px; height: 44px; top: 8px; right: 8px; }
+    .info-btn svg { width: 22px; height: 22px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .demo-ghost, .demo-halo { display: none; }
+    .info-btn { transition: none; }
+    .info-btn:hover { transform: none; }
   }
 </style>
 
@@ -2307,188 +2369,75 @@
 
 
 
+
+
+
 <script>
-/* Stage-one demonstration - a separate, self-contained layer.
+/* The info button - its own closure, referring to nothing inside the game.
 
-   Written as its own closure with no reference to anything inside the game: it only reads
-   positions from the DOM and draws on top. Delete this block and the game behaves exactly as
-   it did before. That isolation is the point - Hani asked for a demonstration that could not
-   disturb the matching stage or anything else already working. */
+   It works out which stage is on screen the same way a person would: by looking at which part
+   of the page is showing. That keeps it independent of the game's own state, so it cannot
+   disturb anything, and deleting this block leaves the lesson exactly as it was.
+
+   TO ADD A FILM: drop the file in this folder and name it below. Nothing else. A stage with no
+   film simply has no button, so a child is never offered something that does not answer. Record
+   them short - a child who cannot read will not sit through a long one. */
 (function () {
-  var TRAVEL_MS = 1500;   // long enough to read as a deliberate movement, not a flick
-  var HOLD_MS = 500;      // a beat at the destination so the landing registers
-  var PAUSE_MS = 900;     // and a breath before it starts over
+  var FILMS = {
+    one:   "",   // שלב 1 - גוררים את הדמויות למקום
+    two:   "",   // שלב 2 - מסדרים לפי הסדר
+    three: ""    // שלב 3 - מותחים קו מהשם לדמות
+  };
 
-  var ghost = null, halo = null, timers = [], stopped = false;
+  var btn = document.getElementById("infoBtn");
+  var veil = document.getElementById("infoVeil");
+  var film = document.getElementById("infoVideo");
+  var closeBtn = document.getElementById("infoClose");
+  if (!btn || !veil || !film || !closeBtn) return;
 
-  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
-
-  function remove() {
-    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
-    if (halo && halo.parentNode) halo.parentNode.removeChild(halo);
-    ghost = null;
-    halo = null;
-  }
-
-  /* The first touch anywhere means the child has understood, or at least started. Listened for
-     on the way down so it lands before anything else, and it never blocks the touch itself. */
-  /* It stops when the child reaches for a PIECE — not on any touch at all.
-
-     Stopping on any touch sounded right and was wrong in practice: on a phone the cards sit
-     below the fold, so the first thing anyone does is scroll down to see them, and that scroll
-     killed the demonstration before it had been seen. Hani looked for it and found nothing.
-
-     A hand landing on a card or an arch means the child is trying, and that is the moment to
-     stand back. Scrolling, or a touch on empty page, means they are still looking.
-
-     It also quiets per stage rather than for good, because stage two begins long after the child
-     has started touching and needs its own turn to explain itself. */
-  var hushedFor = null;
-
-  function stageFingerprint() {
+  function currentStage() {
+    var third = document.getElementById("stage3Section");
+    if (third && !third.hidden) return "three";
     var tray = document.getElementById("traySection");
-    var stageOn = document.getElementById("stageSection");
-    if (!stageOn || stageOn.hidden) return "away";
-    return (tray && !tray.hidden) ? "one" : "two";
+    if (tray && !tray.hidden) return "one";
+    return "two";
   }
 
-  function stop() {
-    hushedFor = stageFingerprint();
-    timers.forEach(clearTimeout);
-    timers = [];
-    remove();
-    later(cycle, 700);
+  function filmForNow() {
+    return FILMS[currentStage()] || "";
   }
 
-  function onTouch(e) {
-    var el = e.target;
-    if (!el || !el.closest) return;
-    // a hand on a piece, not a finger passing by
-    if (el.closest(".card, .slot, .match-anchor, .match-name-row, .match-char-card")) stop();
+  /* The stage can change at any time, so the button checks whether it still has anything to
+     offer. Cheap, and it needs no hook inside the game. */
+  function refresh() {
+    btn.hidden = !filmForNow();
   }
-  document.addEventListener("pointerdown", onTouch, true);
-  document.addEventListener("keydown", stop, true);
+  refresh();
+  setInterval(refresh, 600);
 
-  function stageOneVisible() {
-    var section = document.getElementById("stageSection");
-    var tray = document.getElementById("traySection");
-    return !!section && !section.hidden && !!tray && !tray.hidden;
-  }
-
-  function slotNamed(text) {
-    var slots = document.querySelectorAll(".slot");
-    for (var i = 0; i < slots.length; i++) {
-      var label = slots[i].querySelector(".slot-name");
-      if (label && label.textContent.trim() === text) return slots[i];
-    }
-    return null;
+  function close() {
+    veil.hidden = true;
+    film.pause();
+    film.removeAttribute("src");
+    film.load();
   }
 
-  function box(el) {
-    var r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, rect: r };
-  }
+  btn.addEventListener("click", function () {
+    var src = filmForNow();
+    if (!src) return;
+    film.src = src;
+    veil.hidden = false;
+    // a press is a real gesture, so this is allowed to start on its own
+    var started = film.play();
+    if (started && started.catch) started.catch(function () {});
+  });
 
-  /* What to demonstrate depends on the stage.
-
-     Stage one: דו is still in the tray, so show it being carried up into its arch — the whole
-     idea being that these cards move at all.
-
-     Stage two: everyone is already standing in the row and only the ORDER is wrong, which is a
-     different task and looked like the same one. דו starts in place, so showing רה move into
-     the arch right after it says what the new task is without a word of text.
-
-     Either way it is a copy travelling above the page. Nothing is really moved. */
-  function whatToDemonstrate() {
-    var stageOn = document.getElementById("stageSection");
-    if (!stageOn || stageOn.hidden) return null;
-
-    var tray = document.getElementById("traySection");
-    var trayOpen = !!tray && !tray.hidden;
-
-    if (trayOpen) {
-      var fromCard = document.querySelector("#trayShelf .card[data-key='do']");
-      var toSlot = slotNamed("דו");
-      if (!fromCard || !toSlot) return null;
-      return { card: fromCard, slot: toSlot };
-    }
-
-    // stage two: רה is standing in somebody else's arch, and belongs in the second one
-    var reCard = document.querySelector(".slot .card[data-key='re']");
-    var reSlot = slotNamed("רה");
-    if (!reCard || !reSlot) return null;
-    // already in place — there is nothing left to show
-    if (reSlot.contains(reCard)) return null;
-    return { card: reCard, slot: reSlot };
-  }
-
-  function cycle() {
-    if (stopped) return;
-    if (hushedFor && hushedFor === stageFingerprint()) { later(cycle, 700); return; }
-
-    var plan = whatToDemonstrate();
-    if (!plan) { later(cycle, 700); return; }
-    var card = plan.card;
-    var slot = plan.slot;
-
-    var from = box(card);
-    var arch = slot.querySelector(".slot-arch") || slot;
-    var to = box(arch);
-
-    remove();
-    ghost = card.cloneNode(true);
-    ghost.className = "card demo-ghost";
-    ghost.style.width = from.w + "px";
-    ghost.style.height = from.h + "px";
-    ghost.style.left = from.rect.left + "px";
-    ghost.style.top = from.rect.top + "px";
-    document.body.appendChild(ghost);
-
-    halo = document.createElement("div");
-    halo.className = "demo-halo";
-    halo.style.left = from.x + "px";
-    halo.style.top = from.y + "px";
-    document.body.appendChild(halo);
-
-    var dx = to.x - from.x;
-    var dy = to.y - from.y;
-
-    requestAnimationFrame(function () {
-      if (stopped || !ghost) return;
-      ghost.style.transition = "opacity 260ms ease";
-      halo.style.transition = "opacity 260ms ease, transform 260ms ease";
-      ghost.style.opacity = "0.92";
-      halo.style.opacity = "1";
-      halo.style.transform = "scale(0.86)";
-
-      later(function () {
-        if (stopped || !ghost) return;
-        var ease = "cubic-bezier(.45,.05,.3,1)";
-        ghost.style.transition = "transform " + TRAVEL_MS + "ms " + ease;
-        halo.style.transition = "transform " + TRAVEL_MS + "ms " + ease;
-        ghost.style.transform = "translate(" + dx + "px, " + dy + "px) scale(0.94)";
-        halo.style.transform = "translate(" + dx + "px, " + dy + "px) scale(0.86)";
-      }, 300);
-
-      later(function () {
-        if (stopped || !ghost) return;
-        ghost.style.transition = "opacity 320ms ease";
-        halo.style.transition = "opacity 320ms ease";
-        ghost.style.opacity = "0";
-        halo.style.opacity = "0";
-      }, 300 + TRAVEL_MS + HOLD_MS);
-
-      later(function () {
-        if (stopped) return;
-        remove();
-        cycle();
-      }, 300 + TRAVEL_MS + HOLD_MS + PAUSE_MS);
-    });
-  }
-
-  /* Let the cards finish their own entrance before demonstrating anything. */
-  if (document.readyState === "complete") later(cycle, 1400);
-  else window.addEventListener("load", function () { later(cycle, 1400); });
+  closeBtn.addEventListener("click", close);
+  veil.addEventListener("click", function (e) { if (e.target === veil) close(); });
+  film.addEventListener("ended", close);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !veil.hidden) close();
+  });
 })();
 </script>
 

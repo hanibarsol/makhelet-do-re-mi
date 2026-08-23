@@ -850,6 +850,7 @@
   }
 
   .match-anchor {
+    position: relative;
     flex: 0 0 auto;
     width: 16px;
     height: 16px;
@@ -858,6 +859,22 @@
     cursor: grab;
     touch-action: none;
     animation: anchorPulse 1.8s ease-in-out infinite;
+  }
+
+  /* The dot stays 16px to the eye and becomes 52px to the finger.
+
+     At 16px a child has to hit a target a third the size of the accepted minimum for a
+     fingertip. Miss it and no line begins — the touch is just a touch, and the browser scrolls
+     the page instead. That is what looked like the game scrolling on its own while a line was
+     being drawn: it was not the game at all, it was a missed grab. Widening the reach fixes the
+     cause; nothing about the drag itself needed changing.
+
+     Invisible, so the layout and the pulse are untouched. */
+  .match-anchor::before {
+    content: "";
+    position: absolute;
+    inset: -18px;
+    border-radius: 50%;
   }
 
   @keyframes anchorPulse {
@@ -2132,28 +2149,54 @@
   var matchLastX = 0, matchLastY = 0;
   var matchAutoScrollSpeed = 0;
   var matchAutoScrollRAF = null;
-  /* The page does not move at all while a line is being drawn.
+  var AUTO_SCROLL_EDGE = 90;
+  var AUTO_SCROLL_MAX_SPEED = 8;
 
-     It used to follow the finger toward the screen edge; that was narrowed to only when the
-     answer was off-screen, and Hani still found it in the way — reaching for anything far from
-     the anchor slid the page and the connection point ran away from her finger. She asked for it
-     to hold still, so it holds still. A child who cannot reach an answer lets go, scrolls, and
-     takes hold again — which costs nothing, while a target moving under the finger costs the
-     attempt.
+  /* The page travels only toward an answer that is really off-screen.
 
-     Do not reintroduce scrolling during the drag. */
-  function updateAutoScroll() {
-    matchAutoScrollSpeed = 0;
-    if (matchAutoScrollRAF) {
-      cancelAnimationFrame(matchAutoScrollRAF);
-      matchAutoScrollRAF = null;
+     Some rows continue below the fold and a child has to be able to reach them, so the page does
+     have to move sometimes. What it must never do is move while the answer is in plain sight —
+     that pulls the connection point out from under the finger and costs the attempt.
+
+     It used to watch the FINGER: coming near the top or bottom edge scrolled the page whatever
+     was on screen. Now it watches the ANSWER, and re-decides every frame so it stops the instant
+     the answer comes into view. Speed is halved as well — sixteen pixels a frame is nearly a
+     thousand a second, more than a five-year-old can follow. */
+  function matchTargetRect() {
+    if (!matchDragKey) return null;
+    var sel = targetSelectorFor(matchDragSide);
+    var target = document.querySelector(sel + '[data-key="' + matchDragKey + '"]');
+    return target ? target.getBoundingClientRect() : null;
+  }
+
+  function updateAutoScroll(clientY) {
+    var target = matchTargetRect();
+    var margin = 12; // count an answer as out of reach a little before it truly is
+    var above = !!target && target.top < margin;
+    var below = !!target && target.bottom > window.innerHeight - margin;
+
+    if (above && clientY < AUTO_SCROLL_EDGE) {
+      matchAutoScrollSpeed = -AUTO_SCROLL_MAX_SPEED * (1 - clientY / AUTO_SCROLL_EDGE);
+    } else if (below && clientY > window.innerHeight - AUTO_SCROLL_EDGE) {
+      matchAutoScrollSpeed = AUTO_SCROLL_MAX_SPEED * (1 - (window.innerHeight - clientY) / AUTO_SCROLL_EDGE);
+    } else {
+      matchAutoScrollSpeed = 0;
+    }
+    if (matchAutoScrollSpeed !== 0 && !matchAutoScrollRAF) {
+      matchAutoScrollRAF = requestAnimationFrame(autoScrollStep);
     }
   }
 
   function autoScrollStep() {
-    matchAutoScrollRAF = null;
+    if (!matchDragKey || matchAutoScrollSpeed === 0) {
+      matchAutoScrollRAF = null;
+      return;
+    }
+    window.scrollBy(0, matchAutoScrollSpeed);
+    updateDragVisual(matchLastX, matchLastY);
+    updateAutoScroll(matchLastY);
+    matchAutoScrollRAF = requestAnimationFrame(autoScrollStep);
   }
-
   function onMatchPointerMove(e) {
     if (!matchDragKey) return;
     updateDragVisual(e.clientX, e.clientY);

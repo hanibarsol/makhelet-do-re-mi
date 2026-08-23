@@ -43,10 +43,16 @@
     </svg>
 </a>
 <button class="info-btn" id="infoBtn" type="button" aria-label="איך משחקים" hidden>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="9.2" />
-    <path d="M12 11v5.4" />
-    <path d="M12 7.6v0.1" />
+  <!-- A screen with a play triangle, not the letter i.
+
+       The children here are four to eight and most cannot read; a latin "i" is a convention
+       borrowed from grown-up apps and means nothing to them. A play triangle is the one symbol
+       they already know without being taught, from every screen in the house, and the frame
+       around it says a film will open rather than the game starting. It is the only option that
+       tells them both what will happen and what to press. -->
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+    <rect x="2.6" y="5" width="18.8" height="14" rx="3.4" />
+    <path d="M10 9.4l5 2.6-5 2.6z" fill="currentColor" stroke="none" />
   </svg>
 </button>
 
@@ -1050,7 +1056,7 @@
   .info-btn[hidden] { display: none; }
   .info-btn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 18px rgba(18, 48, 44, 0.45); }
   .info-btn:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
-  .info-btn svg { width: 26px; height: 26px; }
+  .info-btn svg { width: 28px; height: 28px; }
 
   .info-veil {
     position: fixed;
@@ -1095,7 +1101,7 @@
   .info-close:focus-visible { outline: 3px solid #17A79B; outline-offset: 3px; }
   @media (max-width: 640px) {
     .info-btn { width: 44px; height: 44px; top: 8px; right: 8px; }
-    .info-btn svg { width: 22px; height: 22px; }
+    .info-btn svg { width: 24px; height: 24px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .info-btn { transition: none; }
@@ -2397,9 +2403,9 @@
    them short - a child who cannot read will not sit through a long one. */
 (function () {
   var FILMS = {
-    one:   "",   // שלב 1 - גוררים את הדמויות למקום
-    two:   "",   // שלב 2 - מסדרים לפי הסדר
-    three: ""    // שלב 3 - מותחים קו מהשם לדמות
+    one:   "info-1.mp4",   // שלב 1 - גוררים את הדמויות למקום
+    two:   "info-2.mp4",   // שלב 2 - מסדרים לפי הסדר
+    three: "info-3.mp4"    // שלב 3 - מותחים קו מהשם לדמות
   };
 
   var btn = document.getElementById("infoBtn");
